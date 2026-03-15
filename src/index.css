@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #aa3bff;
+  --color-brand-secondary: #c084fc;
+  --color-bg-dark: #0a0a0c;
+  --color-bg-light: #ffffff;
+  --color-card-dark: #16171d;
+  --color-border-dark: #2e303a;
+}
+
+@layer base {
+  :root {
+    --text: #6b6375;
+    --text-h: #08060d;
+    --bg: #fff;
+    --border: #e5e4e7;
+    --accent: #aa3bff;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: #9ca3af;
+      --text-h: #f3f4f6;
+      --bg: #0a0a0c;
+      --border: #2e303a;
+      --accent: #c084fc;
+    }
+  }
+
+  body {
+    @apply bg-[var(--bg)] text-[var(--text)] font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-[var(--text-h)] font-semibold;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-white dark:bg-[#16171d] border border-gray-200 dark:border-[#2e303a] rounded-2xl shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  
+  .glass {
+    @apply bg-white/70 dark:bg-[#16171d]/70 backdrop-blur-md border border-white/20 dark:border-white/10;
+  }
+
+  .btn-primary {
+    @apply px-6 py-2.5 bg-[#aa3bff] hover:bg-[#9333ea] text-white rounded-xl font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/20;
+  }
+}
