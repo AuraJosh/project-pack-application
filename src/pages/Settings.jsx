@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Save, Shield, FileCheck, Info, FolderCheck, Settings as SettingsIcon } from 'lucide-react'
 import { db } from '../firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { useToast } from '../components/ToastProvider'
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -11,6 +12,7 @@ export default function Settings() {
     googleDriveFolderId: ''
   })
   const [loading, setLoading] = useState(false)
+  const toast = useToast()
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -27,9 +29,9 @@ export default function Settings() {
     setLoading(true)
     try {
       await setDoc(doc(db, 'settings', 'global'), settings)
-      alert('Settings saved successfully!')
+      toast.success('Settings saved successfully!')
     } catch (error) {
-      alert('Error saving settings: ' + error.message)
+      toast.error('Error saving settings: ' + error.message)
     } finally {
       setLoading(false)
     }

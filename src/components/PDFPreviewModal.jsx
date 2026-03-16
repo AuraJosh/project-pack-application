@@ -11,6 +11,7 @@ import {
   Loader2, Maximize2, Download, ExternalLink, 
   AlertCircle 
 } from 'lucide-react';
+import { useToast } from './ToastProvider';
 
 export default function PDFPreviewModal({ files, initialIndex, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -18,6 +19,7 @@ export default function PDFPreviewModal({ files, initialIndex, onClose }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
+  const toast = useToast();
   const currentFile = files[currentIndex];
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export default function PDFPreviewModal({ files, initialIndex, onClose }) {
       });
     } catch (err) {
       console.error("Copy failed:", err);
-      alert("Copy failed. Try right-clicking the image.");
+      toast.error("Copy failed. Try right-clicking the image.");
     }
   };
 

@@ -8,6 +8,7 @@ import {
   ChevronRight, Info, AlertCircle, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
 
 export default function StorageExplorer() {
   const [folders, setFolders] = useState([]);
@@ -18,6 +19,7 @@ export default function StorageExplorer() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewType, setViewType] = useState('grid'); // 'grid' or 'list'
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     fetchFolders();
@@ -122,7 +124,7 @@ export default function StorageExplorer() {
       setFolderFiles(prev => prev.filter(f => f.fullPath !== file.fullPath));
     } catch (error) {
       console.error("Delete error:", error);
-      alert("Failed to delete file.");
+      toast.error("Failed to delete file.");
     }
   };
 

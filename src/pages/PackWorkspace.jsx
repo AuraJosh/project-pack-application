@@ -7,6 +7,7 @@ import { generateCustomProjectId } from '../utils/projectIds'
 import axios from 'axios'
 import { vertexAI } from '../firebase'
 import { getGenerativeModel } from "@firebase/vertexai-preview"
+import { useToast } from '../components/ToastProvider'
 
 const FUNCTIONS_BASE_URL = 'https://us-central1-project-pack-app.cloudfunctions.net';
 
@@ -24,6 +25,7 @@ export default function PackWorkspace() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const toast = useToast()
   
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -69,7 +71,7 @@ export default function PackWorkspace() {
 
   const handleStartWorkspace = async () => {
     if (!project?.internalRef) {
-      alert("Missing portal reference for this project. Cannot scrape.")
+      toast.error("Missing portal reference for this project. Cannot scrape.")
       return
     }
 
@@ -101,10 +103,10 @@ export default function PackWorkspace() {
         workspaceStarted: true 
       })
 
-      alert(`Workspace initialized! ${newFiles.length} documents secured in Google Drive.`)
+      toast.success(`Workspace initialized! ${newFiles.length} documents secured.`)
     } catch (error) {
       console.error("Workspace init error", error)
-      alert("Failed to initialize workspace. The robot could not find any documents.")
+      toast.error("Failed to initialize workspace. The robot could not find any documents.")
     } finally {
       setIsDriveLoading(false)
     }
@@ -112,7 +114,7 @@ export default function PackWorkspace() {
 
   const handleGenerateAI = async () => {
     if (!projectFiles || projectFiles.length === 0) {
-      alert("No documents found. Please upload or scrape documents first.");
+      toast.warning("No documents found. Please upload or scrape documents first.");
       return;
     }
 
@@ -181,7 +183,7 @@ FORMAT: Use professional, technical language with clear headers and bullet point
       }
     } catch (error) {
        console.error("AI Error", error);
-       alert(`AI Generation failed: ${error.message}\n\nCheck if Vertex AI is enabled and you have correct permissions.`);
+       toast.error(`AI Generation failed: ${error.message}. Check if Vertex AI is enabled.`);
     } finally {
       setIsAILoading(false);
     }
@@ -195,9 +197,9 @@ FORMAT: Use professional, technical language with clear headers and bullet point
         aiDescription, 
         driveUrl 
       })
-      alert("Workspace saved successfully!")
+      toast.success("Workspace saved successfully!")
     } catch (error) {
-      alert("Error saving workspace: " + error.message)
+      toast.error("Error saving workspace: " + error.message)
     } finally {
       setLoading(false)
     }
@@ -223,11 +225,11 @@ FORMAT: Use professional, technical language with clear headers and bullet point
       setProjectFiles(updatedFiles)
       await updateProject(id, { projectFiles: updatedFiles })
 
-      alert("Files uploaded successfully!")
+      toast.success("Files uploaded successfully!")
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message;
       console.error("Upload error", error)
-      alert(`Failed to upload file(s): ${errorMsg}`)
+      toast.error(`Failed to upload file(s): ${errorMsg}`)
     } finally {
       setIsUploading(false)
     }
@@ -248,10 +250,10 @@ FORMAT: Use professional, technical language with clear headers and bullet point
       setProjectFiles(updatedFiles)
       await updateProject(id, { projectFiles: updatedFiles })
       
-      alert("File deleted successfully")
+      toast.success("File deleted successfully")
     } catch (error) {
       console.error("Delete error", error)
-      alert("Failed to delete file from storage.")
+      toast.error("Failed to delete file from storage.")
     }
   }
 

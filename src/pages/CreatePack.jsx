@@ -5,10 +5,12 @@ import { createProject, getProjectById } from '../services/db'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { ProjectPDF } from '../components/ProjectPDF'
 import { useSearchParams, Link } from 'react-router-dom'
+import { useToast } from '../components/ToastProvider'
 
 export default function CreatePack() {
   const [searchParams] = useSearchParams()
   const projectId = searchParams.get('id')
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [dataFetched, setDataFetched] = useState(false)
   const [formData, setFormData] = useState({
@@ -72,7 +74,7 @@ export default function CreatePack() {
       }
     } catch (error) {
       console.error("Fetch error", error)
-      alert("Failed to fetch data. Make sure Cloud Functions are deployed and URLs are correct.")
+      toast.error("Failed to fetch data. Check links and try again.")
     } finally {
       setLoading(false)
     }
@@ -80,7 +82,7 @@ export default function CreatePack() {
 
   const handleFetchMap = () => {
     if (!formData.address) {
-      alert("Please provide an address first.")
+      toast.warning("Please provide an address first.")
       return
     }
     const mapUrl = getAerialMapUrl(formData.address)
@@ -90,9 +92,9 @@ export default function CreatePack() {
   const handleSave = async () => {
     try {
       await createProject(formData)
-      alert("Project saved successfully!")
+      toast.success("Project saved successfully!")
     } catch (error) {
-      alert("Error saving project: " + error.message)
+      toast.error("Error saving project: " + error.message)
     }
   }
 

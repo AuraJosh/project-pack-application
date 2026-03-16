@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getProjects, updateProject } from '../services/db'
 import { generateCustomProjectId } from '../utils/projectIds'
 import axios from 'axios'
+import { useToast } from '../components/ToastProvider'
 
 // Leaflet imports for Map view
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('table') // 'table' or 'map'
   const [selectedProject, setSelectedProject] = useState(null)
   const navigate = useNavigate()
+  const toast = useToast()
 
   useEffect(() => {
     const generateWeeks = () => {
@@ -71,10 +73,10 @@ export default function Dashboard() {
     setIsSyncing(true)
     try {
       const response = await axios.post(`${FUNCTIONS_BASE_URL}/scraper`, { targetWeek: selectedWeek })
-      alert(`Sync Complete! Added: ${response.data.stats.added}, Existing: ${response.data.stats.existing}`)
+      toast.success(`Sync Complete! Added: ${response.data.stats.added}, Existing: ${response.data.stats.existing}`)
       fetchProjects()
     } catch (error) {
-      alert("Sync failed. Check Cloud Functions logs.")
+      toast.error("Sync failed. Check Cloud Functions logs.")
     } finally {
       setIsSyncing(false)
     }
@@ -163,11 +165,11 @@ export default function Dashboard() {
         }
       }
       
-      alert(`Big Flush Complete!\n- ${updatedCount} IDs updated\n- ${geocodedCount} missing coordinates fixed.`);
+      toast.success(`Big Flush Complete! ${updatedCount} IDs updated.`);
       fetchProjects();
     } catch (error) {
        console.error("Big Flush Fatal Error", error);
-       alert("Big Flush failed: " + error.message);
+       toast.error("Big Flush failed: " + error.message);
     } finally {
       setIsSyncing(false);
     }
