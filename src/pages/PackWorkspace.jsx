@@ -8,6 +8,7 @@ import axios from 'axios'
 import { vertexAI } from '../firebase'
 import { getGenerativeModel } from "@firebase/vertexai-preview"
 import { useToast } from '../components/ToastProvider'
+import { useConfirm } from '../components/ConfirmProvider'
 
 const FUNCTIONS_BASE_URL = 'https://us-central1-project-pack-app.cloudfunctions.net';
 
@@ -26,6 +27,7 @@ export default function PackWorkspace() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const confirm = useConfirm()
   
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -236,7 +238,8 @@ FORMAT: Use professional, technical language with clear headers and bullet point
   }
 
   const handleDeleteFile = async (fileName) => {
-    if (!window.confirm(`Are you sure you want to delete ${fileName}?`)) return
+    const isConfirmed = await confirm(`Are you sure you want to permanently delete ${fileName}?`);
+    if (!isConfirmed) return;
 
     try {
       // 1. Delete from Firebase Storage via Cloud Function

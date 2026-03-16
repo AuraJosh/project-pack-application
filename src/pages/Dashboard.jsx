@@ -5,6 +5,7 @@ import { getProjects, updateProject } from '../services/db'
 import { generateCustomProjectId } from '../utils/projectIds'
 import axios from 'axios'
 import { useToast } from '../components/ToastProvider'
+import { useConfirm } from '../components/ConfirmProvider'
 
 // Leaflet imports for Map view
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [selectedProject, setSelectedProject] = useState(null)
   const navigate = useNavigate()
   const toast = useToast()
+  const confirm = useConfirm()
 
   useEffect(() => {
     const generateWeeks = () => {
@@ -83,7 +85,11 @@ export default function Dashboard() {
   }
 
   const handleBulkUpdateIds = async () => {
-    if (!window.confirm("Big Flush: This will geocode missing addresses and recalculate ALL Sector IDs based on your new coordinate grid. Proceed?")) return;
+    const isConfirmed = await confirm(
+      "Big Flush: This will geocode missing addresses and recalculate ALL Sector IDs based on your new coordinate grid. Proceed?",
+      "Database Refactoring"
+    );
+    if (!isConfirmed) return;
     
     setIsSyncing(true);
     let updatedCount = 0;

@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import PackWorkspace from './pages/PackWorkspace'
 import StorageExplorer from './pages/StorageExplorer'
 import { ToastProvider } from './components/ToastProvider'
+import { ConfirmProvider } from './components/ConfirmProvider'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -37,18 +38,20 @@ function App() {
 
   return (
     <ToastProvider>
-      <Router basename="/project-pack-application">
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/create" element={<CreatePack />} />
-            <Route path="/workspace/:id" element={<PackWorkspace />} />
-            <Route path="/storage" element={<StorageExplorer />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Layout>
-      </Router>
+      <ConfirmProvider>
+        <Router basename="/project-pack-application">
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/create" element={<CreatePack />} />
+              <Route path="/workspace/:id" element={<PackWorkspace />} />
+              <Route path="/storage" element={<StorageExplorer />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </ConfirmProvider>
     </ToastProvider>
   )
 }

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 
 export default function StorageExplorer() {
   const [folders, setFolders] = useState([]);
@@ -20,6 +21,7 @@ export default function StorageExplorer() {
   const [viewType, setViewType] = useState('grid'); // 'grid' or 'list'
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchFolders();
@@ -106,7 +108,8 @@ export default function StorageExplorer() {
   };
 
   const handleDeleteFile = async (file) => {
-    if (!window.confirm(`Are you sure you want to delete ${file.name}?`)) return;
+    const isConfirmed = await confirm(`Are you sure you want to permanently delete ${file.name}?`);
+    if (!isConfirmed) return;
     
     try {
       // 1. Delete from Storage
