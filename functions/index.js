@@ -25,10 +25,7 @@ function getStoragePath(projectId, address = '') {
   return `projects/${slug}_${projectId}`;
 }
 
-/**
- * Extracts all fields from a detail page table.
- */
-function parseDetailPages(htmlList) {
+function parseDetailPagesLogic(htmlList) {
   const fields = {};
   for (const html of htmlList) {
     const $ = cheerio.load(html);
@@ -40,7 +37,21 @@ function parseDetailPages(htmlList) {
       }
     });
   }
-  return fields;
+
+  const rawStatus = fields['status'] || null;
+  const decisionText = fields['decision'] || null;
+  const effectiveStatus = (rawStatus && rawStatus !== 'Unknown') ? rawStatus : (decisionText || rawStatus || 'Unknown');
+
+  return {
+    reference: fields['reference'] || fields['ref. no:'] || null,
+    applicantName: fields['applicant name'] || fields['applicant'] || null,
+    applicationReceived: fields['application received'] || fields['date received'] || null,
+    applicationValidated: fields['application validated'] || fields['date validated'] || null,
+    appStatus: effectiveStatus,
+    decisionText: decisionText,
+    decisionDateStr: fields['decision issued date'] || fields['decision date'] || null,
+    fullDescription: fields['proposal'] || fields['description'] || null,
+  };
 }
 
 exports.scraper = onRequest({ 
@@ -79,7 +90,7 @@ exports.scraper = onRequest({
       await page.select('select#week', targetWeek);
     }
 
-    // Select Decided
+    // Select Decided - Benchmark Logic
     await page.click('input[name="dateType"][value="DC_Decided"]').catch(() => {});
     
     await Promise.all([
@@ -91,85 +102,61 @@ exports.scraper = onRequest({
     let hasNextPage = true;
     while (hasNextPage) {
       await page.waitForSelector('#searchresults', { timeout: 10000 });
-      const resultsCount = await page.evaluate(() => document.querySelectorAll('#searchresults .searchresult').length);
+      const results = await page.evaluate(() => 
+        Array.from(document.querySelectorAll('#searchresults .searchresult')).map(el => ({
+          href: el.querySelector('a')?.getAttribute('href'),
+          addr: el.querySelector('.address') ? el.querySelector('.address').innerText.replace(/\s+/g, ' ').trim() : '',
+          desc: el.querySelector('a') ? el.querySelector('a').innerText.replace(/\s+/g, ' ').trim() : ''
+        }))
+      );
 
-      for (let i = 0; i < resultsCount; i++) {
-        const appInfo = await page.evaluate((index) => {
-          const el = document.querySelectorAll('#searchresults .searchresult')[index];
-          const a = el.querySelector('a');
-          const desc = a ? a.innerText.replace(/\s+/g, ' ').trim() : '';
-          const addr = el.querySelector('.address') ? el.querySelector('.address').innerText.replace(/\s+/g, ' ').trim() : '';
-          const href = a ? a.getAttribute('href') : '';
-          return { desc, addr, href };
-        }, i);
+      for (const app of results) {
+        if (!app.desc.toLowerCase().includes('extension')) continue;
 
-        // Identical "Extension" Filter
-        if (!appInfo.desc.toLowerCase().includes('extension')) continue;
-
-        const keyVal = new URLSearchParams(appInfo.href.split('?')[1]).get('keyVal');
+        const keyVal = new URLSearchParams(app.href.split('?')[1]).get('keyVal');
         const docRef = db.collection('projects').doc(keyVal);
         const existingDoc = await docRef.get();
 
-        if (existingDoc.exists) {
-          stats.existing++;
-          continue; 
-        }
-
-        // Phase 3: Fetch Details in a new tab for stability (Matching Benchmark Logic)
+        // PHASE 3: Navigate and Scrape (Identical to Benchmark flow)
         const detailPage = await browser.newPage();
         try {
-          await detailPage.goto(`${BASE_URL}/${appInfo.href}`, { waitUntil: 'networkidle2', timeout: 30000 });
+          await detailPage.goto(`${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`, { waitUntil: 'networkidle2', timeout: 30000 });
           const summaryHtml = await detailPage.content();
 
-          let furtherInfoHtml = '';
+          let furtherHtml = '';
           try {
-            const hasDetailsTab = await detailPage.$('#subtab_details');
-            if (hasDetailsTab) {
-              await detailPage.click('#subtab_details');
-              await detailPage.waitForSelector('table tr', { timeout: 10000 });
-              furtherInfoHtml = await detailPage.content();
-            }
-          } catch (e) { logger.warn("Skip further info tab"); }
+            await detailPage.click('#subtab_details');
+            await detailPage.waitForSelector('table tr', { timeout: 10000 });
+            furtherHtml = await detailPage.content();
+          } catch (e) { logger.warn(`[${keyVal}] No further info tab`); }
 
-          // Benchmark only scrapes Summary + Further Info (Details)
-          const fields = parseDetailPages([summaryHtml, furtherInfoHtml]);
+          const parsed = parseDetailPagesLogic([summaryHtml, furtherHtml]);
           
-          // Field Mapping IDENTICAL to Benchmark
-          const applicantName = fields['applicant name'] || fields['applicant'] || 'Unknown';
-          const applicationReceived = fields['application received'] || fields['date received'] || null;
-          const applicationValidated = fields['application validated'] || fields['date validated'] || null;
-          const decisionDateStr = fields['decision issued date'] || fields['decision date'] || null;
-          const rawStatus = fields['status'] || null;
-          const decisionText = fields['decision'] || null;
-          const appStatus = (rawStatus && rawStatus !== 'Unknown') ? rawStatus : (decisionText || rawStatus || 'Unknown');
-
-          let decidedDate = null;
-          if (decisionDateStr) {
-            const p = new Date(decisionDateStr);
-            if (!isNaN(p)) decidedDate = p.toISOString();
-          } else {
-            // Benchmark defaults to current date if missing, to avoid N/A in table
-            decidedDate = new Date().toISOString();
+          // Default Decided Date to 'Now' if missing (Matching Benchmark Logic)
+          let decidedDate = new Date();
+          if (parsed.decisionDateStr) {
+            const p = new Date(parsed.decisionDateStr);
+            if (!isNaN(p)) decidedDate = p;
           }
 
           const projectData = {
             id: keyVal,
-            internalRef: fields['reference'] || fields['ref. no:'] || null,
-            address: appInfo.addr,
-            description: fields['proposal'] || fields['description'] || appInfo.desc,
-            status: 'Pending',
-            homeownerName: applicantName,
-            dateReceived: applicationReceived,
-            dateValidated: applicationValidated,
-            dateDecided: decidedDate,
-            approvalStatus: appStatus,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            url: `${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`
+            reference: parsed.reference || null,
+            address: app.addr,
+            description: parsed.fullDescription || app.desc,
+            applicationStatus: parsed.appStatus,
+            applicantName: parsed.applicantName || 'Unknown',
+            dateReceived: parsed.applicationReceived || null,
+            dateValidated: parsed.applicationValidated || null,
+            dateDecided: decidedDate.toISOString(),
+            url: `https://planningaccess.york.gov.uk/online-applications/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`,
+            status: 'New', // Internal Status
+            timestamp: new Date().toISOString()
           };
 
           // Geocoding logic
           try {
-            const encoded = encodeURIComponent(`${appInfo.addr}, York, UK`);
+            const encoded = encodeURIComponent(`${app.addr}, York, UK`);
             const geo = await axios.get(
               `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
               { headers: { 'User-Agent': 'BenchmarkIntelligence/1.0 (jamie.dark.business@gmail.com)' }, timeout: 8000 }
@@ -181,11 +168,15 @@ exports.scraper = onRequest({
               };
             }
           } catch (geoErr) {
-            logger.warn(`Geocoding failed for ${appInfo.addr}`, geoErr);
+            logger.warn(`Geocoding failed for ${app.addr}`, geoErr);
           }
 
-          await docRef.set(projectData);
-          stats.added++;
+          // Use set with merge to replicate benchmark update behavior
+          await docRef.set(projectData, { merge: true });
+          
+          if (existingDoc.exists) stats.existing++;
+          else stats.added++;
+
         } catch (detailErr) {
           logger.error(`Error scraping detail page for ${keyVal}`, detailErr);
           stats.errors++;

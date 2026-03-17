@@ -63,7 +63,8 @@ export default function Dashboard() {
     setLoading(true)
     try {
       const data = await getProjects()
-      setProjects(data.sort((a, b) => new Date(b.dateReceived) - new Date(a.dateReceived)))
+      // Default Sort: Decided (Newest) - Matching Benchmark
+      setProjects(data.sort((a, b) => new Date(b.dateDecided || 0) - new Date(a.dateDecided || 0)))
     } catch (error) {
       console.error("Error fetching projects", error)
     } finally {
@@ -182,10 +183,14 @@ export default function Dashboard() {
   }
 
   const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.address?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         p.internalRef?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.homeownerName?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'All' || p.approvalStatus === statusFilter
+    const searchTerms = searchQuery.toLowerCase();
+    const matchesSearch = 
+      p.address?.toLowerCase().includes(searchTerms) || 
+      p.reference?.toLowerCase().includes(searchTerms) ||
+      p.applicantName?.toLowerCase().includes(searchTerms) ||
+      p.description?.toLowerCase().includes(searchTerms)
+
+    const matchesStatus = statusFilter === 'All' || p.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
@@ -252,9 +257,9 @@ export default function Dashboard() {
             className="p-3 bg-white dark:bg-[#16171d] border border-gray-200 dark:border-[#2e303a] rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-purple-500 outline-none min-w-[160px]"
           >
             <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Decided">Decided</option>
-            <option value="Withdrawn">Withdrawn</option>
+            <option value="New">New</option>
+            <option value="Won">Won</option>
+            <option value="Archive">Archive</option>
           </select>
         </div>
 
@@ -317,23 +322,22 @@ export default function Dashboard() {
                   <tr key={project.id} className="hover:bg-gray-50/50 dark:hover:bg-white/3 transition-colors group cursor-pointer" onClick={() => setSelectedProject(project)}>
                     <td className="px-6 py-4">
                       <div className="text-sm font-bold text-[#0f172a] dark:text-white mb-0.5">{project.address}</div>
-                      <div className="text-[10px] tracking-wider text-gray-400 uppercase font-mono">{project.internalRef}</div>
+                      <div className="text-[10px] tracking-wider text-gray-400 uppercase font-mono">{project.reference}</div>
                     </td>
                     <td className="px-6 py-4 truncate max-w-xs text-xs text-gray-500 dark:text-gray-400" title={project.description}>
                       {project.description}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                        project.approvalStatus?.toLowerCase().includes('approved') || project.approvalStatus?.toLowerCase().includes('decided') || project.approvalStatus?.toLowerCase().includes('grant')
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-                          : project.approvalStatus?.toLowerCase().includes('withdrawn') || project.approvalStatus?.toLowerCase().includes('refuse')
-                          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
-                          : 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                        project.status === 'Won' ? 'border-green-200 bg-green-50 text-green-700' :
+                        project.status === 'Archive' ? 'border-gray-200 bg-gray-50 text-gray-700' :
+                        project.status === 'Paid' ? 'border-purple-200 bg-purple-50 text-purple-700' :
+                        'border-yellow-200 bg-yellow-50 text-yellow-700'
                       }`}>
-                        {project.approvalStatus || 'Pending'}
+                        {project.status || 'New'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-medium">
                       {project.dateDecided ? new Date(project.dateDecided).toLocaleDateString('en-GB') : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -371,7 +375,7 @@ export default function Dashboard() {
                   <Popup className="premium-popup">
                     <div className="p-2 space-y-2">
                       <div className="font-bold text-sm">{project.address}</div>
-                      <div className="text-xs text-gray-500">{project.homeownerName}</div>
+                      <div className="text-xs text-gray-500">{project.applicantName}</div>
                       <button 
                         onClick={() => setSelectedProject(project)}
                         className="w-full mt-2 py-1.5 bg-purple-600 text-white text-[10px] font-bold rounded-lg"
@@ -450,15 +454,15 @@ export default function Dashboard() {
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</p>
-                        <p className="text-sm font-bold dark:text-white">{selectedProject.internalRef || selectedProject.reference || 'N/A'}</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.reference || 'N/A'}</p>
                       </div>
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">App Status</p>
-                        <p className="text-sm font-bold dark:text-white">{selectedProject.approvalStatus || 'Pending'}</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.applicationStatus || 'Pending'}</p>
                       </div>
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant</p>
-                        <p className="text-sm font-bold dark:text-white">{selectedProject.homeownerName || 'Unknown'}</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.applicantName || 'Unknown'}</p>
                       </div>
                     </div>
                   </div>
