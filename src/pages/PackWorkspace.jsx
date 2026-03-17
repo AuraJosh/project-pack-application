@@ -51,8 +51,9 @@ export default function PackWorkspace() {
         if (data) {
           setProject(data)
           // Pre-generate ID if not exists
-          if (!data.customId && data.internalRef) {
-            const newId = generateCustomProjectId(data.address, data.internalRef, data.coordinates)
+          const ref = data.reference || data.internalRef
+          if (!data.customId && ref) {
+            const newId = generateCustomProjectId(data.address, ref, data.coordinates)
             setCustomId(newId)
           } else {
             setCustomId(data.customId || '')
@@ -72,7 +73,8 @@ export default function PackWorkspace() {
   }, [id])
 
   const handleStartWorkspace = async () => {
-    if (!project?.internalRef) {
+    const ref = project.reference || project.internalRef
+    if (!ref) {
       toast.error("Missing portal reference for this project. Cannot scrape.")
       return
     }
@@ -83,7 +85,7 @@ export default function PackWorkspace() {
       const scrapeResponse = await axios.post(`${FUNCTIONS_BASE_URL}/createProjectWorkspace`, { 
         address: project.address,
         id: id,
-        keyVal: project.internalRef
+        keyVal: ref
       })
       
       const newFiles = scrapeResponse.data.files || []
