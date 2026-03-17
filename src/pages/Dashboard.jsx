@@ -454,8 +454,8 @@ export default function Dashboard() {
                     <p className="text-sm font-bold dark:text-white">{selectedProject.homeownerName || 'Unknown'}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Received</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateReceived || 'N/A'}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date Decided</p>
+                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateDecided ? new Date(selectedProject.dateDecided).toLocaleDateString() : 'N/A'}</p>
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Validated</p>

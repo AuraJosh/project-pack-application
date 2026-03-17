@@ -115,7 +115,7 @@ exports.scraper = onRequest({
           continue; 
         }
 
-        // Fetch Details (Summary + Further)
+        // Fetch Details (Summary + Further + Dates)
         await page.evaluate((index) => document.querySelectorAll('#searchresults .searchresult')[index].querySelector('a').click(), i);
         await page.waitForSelector('table tr', { timeout: 15000 });
         const summaryHtml = await page.content();
@@ -127,7 +127,14 @@ exports.scraper = onRequest({
           furtherInfoHtml = await page.content();
         } catch (e) {}
 
-        const fields = parseDetailPages([summaryHtml, furtherInfoHtml]);
+        let datesHtml = '';
+        try {
+          await page.click('#subtab_dates');
+          await page.waitForSelector('table tr', { timeout: 15000 });
+          datesHtml = await page.content();
+        } catch (e) {}
+
+        const fields = parseDetailPages([summaryHtml, furtherInfoHtml, datesHtml]);
         
         const projectData = {
           id: keyVal,
@@ -137,6 +144,7 @@ exports.scraper = onRequest({
           status: 'Pending',
           homeownerName: fields['applicant name'] || fields['applicant'] || 'Unknown',
           dateReceived: fields['application received'] || fields['date received'] || null,
+          dateDecided: fields['decision issued date'] || fields['actual decision date'] || fields['decision date'] || null,
           approvalStatus: fields['status'] || fields['decision'] || 'Unknown',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           url: `${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`
