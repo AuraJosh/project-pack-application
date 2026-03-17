@@ -293,7 +293,7 @@ export default function Dashboard() {
             <table className="w-full text-left">
               <thead className="bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-5">Date Received</th>
+                  <th className="px-6 py-5">Date Decided</th>
                   <th className="px-6 py-5">Site Address</th>
                   <th className="px-6 py-5">Homeowner / Applicant</th>
                   <th className="px-6 py-5">Status</th>
@@ -316,7 +316,7 @@ export default function Dashboard() {
                 ) : filteredProjects.map((project) => (
                   <tr key={project.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors group">
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {project.dateReceived || 'N/A'}
+                      {project.dateDecided ? new Date(project.dateDecided).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-bold dark:text-white mb-0.5">{project.address}</div>
