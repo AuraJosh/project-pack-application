@@ -115,7 +115,7 @@ exports.scraper = onRequest({
           continue; 
         }
 
-        // Phase 3: Fetch Details in a new tab for stability
+        // Phase 3: Fetch Details in a new tab for stability (Matching Benchmark Logic)
         const detailPage = await browser.newPage();
         try {
           await detailPage.goto(`${BASE_URL}/${appInfo.href}`, { waitUntil: 'networkidle2', timeout: 30000 });
@@ -131,28 +131,38 @@ exports.scraper = onRequest({
             }
           } catch (e) { logger.warn("Skip further info tab"); }
 
-          let datesHtml = '';
-          try {
-            const hasDatesTab = await detailPage.$('#subtab_dates');
-            if (hasDatesTab) {
-              await detailPage.click('#subtab_dates');
-              await detailPage.waitForSelector('table tr', { timeout: 10000 });
-              datesHtml = await detailPage.content();
-            }
-          } catch (e) { logger.warn("Skip dates tab"); }
-
-          const fields = parseDetailPages([summaryHtml, furtherInfoHtml, datesHtml]);
+          // Benchmark only scrapes Summary + Further Info (Details)
+          const fields = parseDetailPages([summaryHtml, furtherInfoHtml]);
           
+          // Field Mapping IDENTICAL to Benchmark
+          const applicantName = fields['applicant name'] || fields['applicant'] || 'Unknown';
+          const applicationReceived = fields['application received'] || fields['date received'] || null;
+          const applicationValidated = fields['application validated'] || fields['date validated'] || null;
+          const decisionDateStr = fields['decision issued date'] || fields['decision date'] || null;
+          const rawStatus = fields['status'] || null;
+          const decisionText = fields['decision'] || null;
+          const appStatus = (rawStatus && rawStatus !== 'Unknown') ? rawStatus : (decisionText || rawStatus || 'Unknown');
+
+          let decidedDate = null;
+          if (decisionDateStr) {
+            const p = new Date(decisionDateStr);
+            if (!isNaN(p)) decidedDate = p.toISOString();
+          } else {
+            // Benchmark defaults to current date if missing, to avoid N/A in table
+            decidedDate = new Date().toISOString();
+          }
+
           const projectData = {
             id: keyVal,
             internalRef: fields['reference'] || fields['ref. no:'] || null,
             address: appInfo.addr,
             description: fields['proposal'] || fields['description'] || appInfo.desc,
             status: 'Pending',
-            homeownerName: fields['applicant name'] || fields['applicant'] || 'Unknown',
-            dateReceived: fields['application received'] || fields['date received'] || null,
-            dateDecided: fields['decision issued date'] || fields['actual decision date'] || fields['decision date'] || null,
-            approvalStatus: fields['status'] || fields['decision'] || 'Unknown',
+            homeownerName: applicantName,
+            dateReceived: applicationReceived,
+            dateValidated: applicationValidated,
+            dateDecided: decidedDate,
+            approvalStatus: appStatus,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             url: `${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`
           };

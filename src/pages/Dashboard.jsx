@@ -289,18 +289,18 @@ export default function Dashboard() {
       {/* Main Content Area */}
       <div className="premium-card overflow-hidden min-h-[500px] flex flex-col">
         {viewMode === 'table' ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+          <div className="overflow-x-auto mini-scroll">
+            <table className="w-full text-left text-sm text-gray-600 border-separate border-spacing-0">
+              <thead className="bg-gray-50 dark:bg-white/5 text-xs uppercase text-gray-500 dark:text-gray-400 sticky top-0 z-10 shadow-sm border-b border-gray-100 dark:border-[#2e303a]">
                 <tr>
-                  <th className="px-6 py-5">Date Decided</th>
-                  <th className="px-6 py-5">Site Address</th>
-                  <th className="px-6 py-5">Homeowner / Applicant</th>
-                  <th className="px-6 py-5">Status</th>
-                  <th className="px-6 py-5 text-right">Action</th>
+                  <th className="px-6 py-4 font-medium">Address</th>
+                  <th className="px-6 py-4 font-medium">Description</th>
+                  <th className="px-6 py-4 font-medium w-32">Status</th>
+                  <th className="px-6 py-4 font-medium w-32">Decided</th>
+                  <th className="px-6 py-4 font-medium text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-[#2e303a]">
+              <tbody className="divide-y divide-gray-100 dark:divide-[#2e303a] bg-white dark:bg-transparent">
                 {loading ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center">
@@ -314,39 +314,32 @@ export default function Dashboard() {
                     </td>
                   </tr>
                 ) : filteredProjects.map((project) => (
-                  <tr key={project.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors group">
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {project.dateDecided ? new Date(project.dateDecided).toLocaleDateString() : 'N/A'}
-                    </td>
+                  <tr key={project.id} className="hover:bg-gray-50/50 dark:hover:bg-white/3 transition-colors group cursor-pointer" onClick={() => setSelectedProject(project)}>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold dark:text-white mb-0.5">{project.address}</div>
+                      <div className="text-sm font-bold text-[#0f172a] dark:text-white mb-0.5">{project.address}</div>
                       <div className="text-[10px] tracking-wider text-gray-400 uppercase font-mono">{project.internalRef}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">
-                      {project.homeownerName}
+                    <td className="px-6 py-4 truncate max-w-xs text-xs text-gray-500 dark:text-gray-400" title={project.description}>
+                      {project.description}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        project.approvalStatus?.toLowerCase().includes('approved') || project.approvalStatus?.toLowerCase().includes('decided')
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                          : project.approvalStatus?.toLowerCase().includes('withdrawn')
-                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                        project.approvalStatus?.toLowerCase().includes('approved') || project.approvalStatus?.toLowerCase().includes('decided') || project.approvalStatus?.toLowerCase().includes('grant')
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                          : project.approvalStatus?.toLowerCase().includes('withdrawn') || project.approvalStatus?.toLowerCase().includes('refuse')
+                          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
+                          : 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
                       }`}>
                         {project.approvalStatus || 'Pending'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                      {project.dateDecided ? new Date(project.dateDecided).toLocaleDateString('en-GB') : 'N/A'}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => setSelectedProject(project)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 text-gray-700 dark:text-white border border-gray-200 dark:border-[#2e303a] rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
-                        >
-                          <Search size={14} />
-                          View Details
-                        </button>
-                        <button 
-                          onClick={() => navigate(`/workspace/${project.id}`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/workspace/${project.id}`); }}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition-all shadow-sm"
                         >
                           <LayoutDashboard size={14} />
@@ -400,7 +393,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedProject(null)} />
           <div className="relative bg-white dark:bg-[#16171d] w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header */}
-            <div className="p-6 border-b border-gray-100 dark:border-[#2e303a] flex items-center justify-between">
+            <div className="p-6 border-b border-gray-100 dark:border-[#2e303a] flex items-center justify-between bg-gray-50 dark:bg-white/5">
               <div>
                 <h3 className="text-xl font-bold dark:text-white">Project Details</h3>
                 <p className="text-xs text-gray-400 font-mono mt-1">{selectedProject.id}</p>
@@ -414,7 +407,7 @@ export default function Dashboard() {
             </div>
 
             {/* Content */}
-            <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+            <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto mini-scroll">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Address Section */}
                 <div className="space-y-3">
@@ -438,61 +431,59 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Info Grid Card */}
-              <div className="bg-gray-50 dark:bg-white/5 rounded-3xl p-8 border border-gray-100 dark:border-[#2e303a]">
+              {/* Info Grid Card - Matching Benchmark Timeline Style */}
+              <div className="bg-gray-50 dark:bg-white/5 rounded-3xl p-8 border border-gray-100 dark:border-[#2e303a] relative">
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <a 
+                    href={selectedProject.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-white dark:bg-[#16171d] border border-gray-200 dark:border-[#2e303a] rounded-lg text-[#0f172a] dark:text-white hover:bg-gray-50 transition-all shadow-sm"
+                  >
+                    Portal
+                    <RefreshCw className="-rotate-45" size={12} />
+                  </a>
+                </div>
+
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-8">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.internalRef || selectedProject.reference || 'N/A'}</p>
+                  <div className="lg:col-span-3 pb-4 border-b border-gray-200 dark:border-[#2e303a] -mt-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.internalRef || selectedProject.reference || 'N/A'}</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">App Status</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.approvalStatus || 'Pending'}</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant</p>
+                        <p className="text-sm font-bold dark:text-white">{selectedProject.homeownerName || 'Unknown'}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">App Status</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.approvalStatus || 'Pending'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Applicant</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.homeownerName || 'Unknown'}</p>
-                  </div>
+
+                  {/* Timeline Row */}
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Received</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateReceived || 'N/A'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date Decided</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateDecided ? new Date(selectedProject.dateDecided).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-sm font-medium dark:text-white">{selectedProject.dateReceived || 'N/A'}</p>
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Validated</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateValidated || 'N/A'}</p>
+                    <p className="text-sm font-medium dark:text-white">{selectedProject.dateValidated || 'N/A'}</p>
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Decided</p>
-                    <p className="text-sm font-bold dark:text-white">{selectedProject.dateDecided ? new Date(selectedProject.dateDecided).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-sm font-medium dark:text-white">{selectedProject.dateDecided ? new Date(selectedProject.dateDecided).toLocaleDateString('en-GB') : 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-3 mt-10 pt-8 border-t border-gray-100 dark:border-[#2e303a]">
-                  {selectedProject.coordinates && (
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-[#2e303a] rounded-xl text-xs font-bold dark:text-white">
-                      <MapIcon size={14} />
-                      View on Map
-                    </button>
-                  )}
-                  {selectedProject.url && (
-                    <a 
-                      href={selectedProject.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-[#2e303a] rounded-xl text-xs font-bold dark:text-white"
-                    >
-                      Portal
-                      <RefreshCw className="-rotate-45" size={14} />
-                    </a>
-                  )}
                   <button 
                     onClick={() => navigate(`/workspace/${selectedProject.id}`)}
-                    className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-500/20"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-500/20 hover:bg-purple-700 transition-all"
                   >
+                    <LayoutDashboard size={14} />
                     Pack Creation
                   </button>
                 </div>
