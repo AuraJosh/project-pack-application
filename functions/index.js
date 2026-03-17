@@ -115,65 +115,73 @@ exports.scraper = onRequest({
           continue; 
         }
 
-        // Fetch Details (Summary + Further + Dates)
-        await page.evaluate((index) => document.querySelectorAll('#searchresults .searchresult')[index].querySelector('a').click(), i);
-        await page.waitForSelector('table tr', { timeout: 15000 });
-        const summaryHtml = await page.content();
-
-        let furtherInfoHtml = '';
+        // Phase 3: Fetch Details in a new tab for stability
+        const detailPage = await browser.newPage();
         try {
-          await page.click('#subtab_details');
-          await page.waitForSelector('table tr', { timeout: 15000 });
-          furtherInfoHtml = await page.content();
-        } catch (e) {}
+          await detailPage.goto(`${BASE_URL}/${appInfo.href}`, { waitUntil: 'networkidle2', timeout: 30000 });
+          const summaryHtml = await detailPage.content();
 
-        let datesHtml = '';
-        try {
-          await page.click('#subtab_dates');
-          await page.waitForSelector('table tr', { timeout: 15000 });
-          datesHtml = await page.content();
-        } catch (e) {}
+          let furtherInfoHtml = '';
+          try {
+            const hasDetailsTab = await detailPage.$('#subtab_details');
+            if (hasDetailsTab) {
+              await detailPage.click('#subtab_details');
+              await detailPage.waitForSelector('table tr', { timeout: 10000 });
+              furtherInfoHtml = await detailPage.content();
+            }
+          } catch (e) { logger.warn("Skip further info tab"); }
 
-        const fields = parseDetailPages([summaryHtml, furtherInfoHtml, datesHtml]);
-        
-        const projectData = {
-          id: keyVal,
-          internalRef: fields['reference'] || fields['ref. no:'] || null,
-          address: appInfo.addr,
-          description: fields['proposal'] || fields['description'] || appInfo.desc,
-          status: 'Pending',
-          homeownerName: fields['applicant name'] || fields['applicant'] || 'Unknown',
-          dateReceived: fields['application received'] || fields['date received'] || null,
-          dateDecided: fields['decision issued date'] || fields['actual decision date'] || fields['decision date'] || null,
-          approvalStatus: fields['status'] || fields['decision'] || 'Unknown',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          url: `${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`
-        };
+          let datesHtml = '';
+          try {
+            const hasDatesTab = await detailPage.$('#subtab_dates');
+            if (hasDatesTab) {
+              await detailPage.click('#subtab_dates');
+              await detailPage.waitForSelector('table tr', { timeout: 10000 });
+              datesHtml = await detailPage.content();
+            }
+          } catch (e) { logger.warn("Skip dates tab"); }
 
-        // Geocoding logic (identical to benchmark)
-        try {
-          const encoded = encodeURIComponent(`${appInfo.addr}, York, UK`);
-          const geo = await axios.get(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
-            { headers: { 'User-Agent': 'BenchmarkIntelligence/1.0 (jamie.dark.business@gmail.com)' }, timeout: 8000 }
-          );
-          if (geo.data && geo.data.length > 0) {
-            projectData.coordinates = {
-              lat: parseFloat(geo.data[0].lat),
-              lng: parseFloat(geo.data[0].lon),
-            };
+          const fields = parseDetailPages([summaryHtml, furtherInfoHtml, datesHtml]);
+          
+          const projectData = {
+            id: keyVal,
+            internalRef: fields['reference'] || fields['ref. no:'] || null,
+            address: appInfo.addr,
+            description: fields['proposal'] || fields['description'] || appInfo.desc,
+            status: 'Pending',
+            homeownerName: fields['applicant name'] || fields['applicant'] || 'Unknown',
+            dateReceived: fields['application received'] || fields['date received'] || null,
+            dateDecided: fields['decision issued date'] || fields['actual decision date'] || fields['decision date'] || null,
+            approvalStatus: fields['status'] || fields['decision'] || 'Unknown',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            url: `${BASE_URL}/applicationDetails.do?activeTab=summary&keyVal=${keyVal}`
+          };
+
+          // Geocoding logic
+          try {
+            const encoded = encodeURIComponent(`${appInfo.addr}, York, UK`);
+            const geo = await axios.get(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
+              { headers: { 'User-Agent': 'BenchmarkIntelligence/1.0 (jamie.dark.business@gmail.com)' }, timeout: 8000 }
+            );
+            if (geo.data && geo.data.length > 0) {
+              projectData.coordinates = {
+                lat: parseFloat(geo.data[0].lat),
+                lng: parseFloat(geo.data[0].lon),
+              };
+            }
+          } catch (geoErr) {
+            logger.warn(`Geocoding failed for ${appInfo.addr}`, geoErr);
           }
-        } catch (geoErr) {
-          logger.warn(`Geocoding failed for ${appInfo.addr}`, geoErr);
+
+          await docRef.set(projectData);
+          stats.added++;
+        } catch (detailErr) {
+          logger.error(`Error scraping detail page for ${keyVal}`, detailErr);
+          stats.errors++;
+        } finally {
+          await detailPage.close();
         }
-
-        await docRef.set(projectData);
-        stats.added++;
-
-        // Go back to list
-        await page.goBack();
-        await page.goBack(); 
-        await page.waitForSelector('#searchresults', { timeout: 15000 });
       }
 
       // Next page?
