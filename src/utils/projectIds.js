@@ -1,4 +1,7 @@
 export function generateCustomProjectId(address, portalRef, coordinates = null) {
+  // Safety check: if no reference, we can't build the ID
+  if (!portalRef || typeof portalRef !== 'string') return '';
+
   // 1. Determine Location Code (Sector Code) strictly by Coordinates
   let sectorID = "OUTSIDE_YORK";
   
@@ -21,11 +24,16 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
         else if (longitude >= -1.17 && longitude < -1.09) { sectorID = "MAC"; }
         else if (longitude >= -1.09 && longitude < -1.01) { sectorID = "GDF"; }
         else if (longitude >= -1.01 && longitude <= -0.93) { sectorID = "HRK"; }
+    } else {
+        sectorID = "OUTSIDE_YORK";
     }
   }
 
-  // 2. Reversed Numbers Logic (consistent with previous system)
+  // 2. Reversed Numbers Logic
+  // Example: 26/07641/FUL -> digits: 2607641 -> reversed: 1467062 -> formatted: 14670-62
   const numbersOnly = portalRef.replace(/[^0-9]/g, ''); 
+  if (!numbersOnly) return `${sectorID}-XXXXX-0`; // Fallback if no numbers in ref
+
   const reversed = numbersOnly.split('').reverse().join(''); 
   
   let formattedNumbers = reversed;
@@ -35,7 +43,7 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
     formattedNumbers = `${mainPart}-${endPart}`;
   }
 
-  // 3. Determine Type Digit (consistent with previous system)
+  // 3. Determine Type Digit
   const TYPE_CODES = { 'FUL': '1', 'LHE': '2', 'OUT': '3' };
   let typeDigit = '1';
   for (const [type, digit] of Object.entries(TYPE_CODES)) {
@@ -47,3 +55,4 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
 
   return `${sectorID}-${formattedNumbers}-${typeDigit}`;
 }
+

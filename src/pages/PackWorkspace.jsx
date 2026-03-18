@@ -50,7 +50,7 @@ export default function PackWorkspace() {
         const data = await getProjectById(id)
         if (data) {
           setProject(data)
-          // Pre-generate ID if not exists
+          // Pre-generate ID if missing or empty
           const ref = data.reference || data.internalRef
           if (!data.customId && ref) {
             const newId = generateCustomProjectId(data.address, ref, data.coordinates)
