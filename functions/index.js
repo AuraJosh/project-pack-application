@@ -154,18 +154,22 @@ exports.scraper = onRequest({
             timestamp: new Date().toISOString()
           };
 
-          // Geocoding logic
+          // Geocoding logic: Only use the postcode for consistent sector mapping
           try {
-            const encoded = encodeURIComponent(`${app.addr}, York, UK`);
-            const geo = await axios.get(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
-              { headers: { 'User-Agent': 'BenchmarkIntelligence/1.0 (jamie.dark.business@gmail.com)' }, timeout: 8000 }
-            );
-            if (geo.data && geo.data.length > 0) {
-              projectData.coordinates = {
-                lat: parseFloat(geo.data[0].lat),
-                lng: parseFloat(geo.data[0].lon),
-              };
+            const postcodeMatch = app.addr.match(/[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}/i);
+            if (postcodeMatch) {
+              const postcode = postcodeMatch[0];
+              const encoded = encodeURIComponent(`${postcode}, York, UK`);
+              const geo = await axios.get(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
+                { headers: { 'User-Agent': 'BenchmarkIntelligence/1.0 (jamie.dark.business@gmail.com)' }, timeout: 8000 }
+              );
+              if (geo.data && geo.data.length > 0) {
+                projectData.coordinates = {
+                  lat: parseFloat(geo.data[0].lat),
+                  lng: parseFloat(geo.data[0].lon),
+                };
+              }
             }
           } catch (geoErr) {
             logger.warn(`Geocoding failed for ${app.addr}`, geoErr);

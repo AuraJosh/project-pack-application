@@ -2,6 +2,10 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
   // Safety check: if no reference, we can't build the ID
   if (!portalRef || typeof portalRef !== 'string') return '';
 
+  // Extract Postcode from Address for the ID
+  const postcodeMatch = address ? address.match(/[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}/i) : null;
+  const postcode = postcodeMatch ? postcodeMatch[0].split(' ')[0].toUpperCase() : '';
+
   // 1. Determine Location Code (Sector Code) strictly by Coordinates
   let sectorID = "OUTSIDE_YORK";
   
@@ -30,9 +34,8 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
   }
 
   // 2. Reversed Numbers Logic
-  // Example: 26/07641/FUL -> digits: 2607641 -> reversed: 1467062 -> formatted: 14670-62
   const numbersOnly = portalRef.replace(/[^0-9]/g, ''); 
-  if (!numbersOnly) return `${sectorID}-XXXXX-0`; // Fallback if no numbers in ref
+  if (!numbersOnly) return `${sectorID}-${postcode}-XXXXX-0`.replace('--', '-');
 
   const reversed = numbersOnly.split('').reverse().join(''); 
   
@@ -53,6 +56,8 @@ export function generateCustomProjectId(address, portalRef, coordinates = null) 
     }
   }
 
-  return `${sectorID}-${formattedNumbers}-${typeDigit}`;
+  // Final ID: Sector-PostcodePrefix-ReversedNumbers-Type
+  // Example: MKC-YO24-14670-62-1
+  return `${sectorID}-${postcode}-${formattedNumbers}-${typeDigit}`.replace('--', '-');
 }
 

@@ -108,55 +108,25 @@ export default function Dashboard() {
           continue;
         }
 
-        // 1. Try to geocode if coordinates are missing
+        // 1. Try to geocode if coordinates are missing (Postcode ONLY)
         if (!coords || !coords.lat || !coords.lng) {
           try {
-            const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-            const cleanAddress = (addr) => {
-              // Try to find the postcode at the end
-              const postcodeMatch = addr.match(/[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}/i);
-              const postcode = postcodeMatch ? postcodeMatch[0] : '';
-              // Remove names like "A Watkinson Ltd" or "Jigsaw Cottage" if they are at the start
-              let simplified = addr.split(',')[0].length < 15 ? addr : addr.split(',').slice(-2).join(', ');
-              return { full: addr + ", York, UK", simplified: simplified, postcode: postcode };
-            };
-
-            const searchAttempts = cleanAddress(p.address);
-            console.log(`🔍 Searching: ${p.address}`);
-
-            // Try Google First
-            let response = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchAttempts.full)}&key=${apiKey}`);
-            
-            if (response.data.status === 'OK') {
-              const loc = response.data.results[0].geometry.location;
-              coords = { lat: loc.lat, lng: loc.lng };
-              console.log(`✅ Google fixed it.`);
-            } else {
-              console.warn(`⚠️ Google fail, trying Fallback passes...`);
+            const postcodeMatch = p.address?.match(/[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}/i);
+            if (postcodeMatch) {
+              const postcode = postcodeMatch[0];
+              console.log(`🔍 Geocoding Postcode: ${postcode}`);
               
-              // Multi-Pass Fallback (Nominatim)
-              const queries = [searchAttempts.full, searchAttempts.simplified, searchAttempts.postcode].filter(Boolean);
+              const geo = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(postcode + ', York, UK')}&limit=1`);
               
-              for (const q of queries) {
-                await sleep(1500); // Strict rate limit
-                const fallback = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
-                
-                if (fallback.data && fallback.data.length > 0) {
-                  coords = { 
-                    lat: parseFloat(fallback.data[0].lat), 
-                    lng: parseFloat(fallback.data[0].lon) 
-                  };
-                  console.log(`✅ Fixed with "${q}"`);
-                  break;
-                }
+              if (geo.data && geo.data.length > 0) {
+                coords = { 
+                  lat: parseFloat(geo.data[0].lat), 
+                  lng: parseFloat(geo.data[0].lon) 
+                };
+                console.log(`✅ Fixed with Postcode: ${postcode}`);
+                await updateProject(p.id, { coordinates: coords });
+                geocodedCount++;
               }
-            }
-
-            if (coords) {
-              await updateProject(p.id, { coordinates: coords });
-              geocodedCount++;
-            } else {
-              console.error(`❌ Could not find location for: ${p.address}`);
             }
           } catch (err) {
             console.error(`❌ Geocoding error`, err);
