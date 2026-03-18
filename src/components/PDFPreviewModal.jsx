@@ -9,7 +9,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import { 
   X, ChevronLeft, ChevronRight, Copy, Check, 
   Loader2, Maximize2, Download, ExternalLink, 
-  AlertCircle 
+  AlertCircle, Link
 } from 'lucide-react';
 import { useToast } from './ToastProvider';
 
@@ -17,6 +17,7 @@ export default function PDFPreviewModal({ files, initialIndex, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [rendering, setRendering] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
   const toast = useToast();
@@ -100,6 +101,18 @@ export default function PDFPreviewModal({ files, initialIndex, onClose }) {
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(currentFile.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+      toast.success("Link copied to clipboard!");
+    } catch (err) {
+      console.error("Link copy failed:", err);
+      toast.error("Failed to copy link.");
+    }
+  };
+
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % files.length);
   };
@@ -125,6 +138,15 @@ export default function PDFPreviewModal({ files, initialIndex, onClose }) {
           </div>
           
           <div className="flex items-center gap-2">
+            <button 
+              onClick={handleCopyLink}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                linkCopied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105 active:scale-95'
+              }`}
+            >
+              {linkCopied ? <Check size={14} /> : <Link size={14} />}
+              {linkCopied ? 'Link Copied!' : 'Copy Link'}
+            </button>
             <button 
               onClick={handleCopyImage}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
