@@ -3,7 +3,8 @@ import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import BuilderProfile from '../components/crm/BuilderProfile';
 import HomeownerProfile from '../components/crm/HomeownerProfile';
-import { User, Briefcase, Search } from 'lucide-react';
+import AddProfileModal from '../components/crm/AddProfileModal';
+import { User, Briefcase, Search, Plus } from 'lucide-react';
 
 export default function CRM() {
   const [view, setView] = useState('homeowners'); // 'homeowners' | 'builders'
@@ -14,6 +15,7 @@ export default function CRM() {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribeContacts = onSnapshot(collection(db, 'contacts'), (snapshot) => {
@@ -84,7 +86,14 @@ export default function CRM() {
         <div className="flex-1 min-h-0 w-full flex gap-4">
           {/* Master List (Left Sidebar) */}
           <div className="w-80 shrink-0 bg-white dark:bg-[#16171d] rounded-2xl shadow-sm border border-gray-200 dark:border-[#2e303a] flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-[#2e303a]">
+            <div className="p-4 border-b border-gray-200 dark:border-[#2e303a] space-y-4">
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-medium shadow-sm transition-transform hover:scale-[1.02] ${view === 'builders' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+              >
+                <Plus size={18} />
+                {view === 'builders' ? 'Add Builder' : 'Link Homeowner'}
+              </button>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input 
@@ -155,6 +164,15 @@ export default function CRM() {
             )}
           </div>
         </div>
+      )}
+
+      {isAddModalOpen && (
+        <AddProfileModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          view={view}
+          projects={projects}
+        />
       )}
     </div>
   );
