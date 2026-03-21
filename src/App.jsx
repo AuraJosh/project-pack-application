@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import Login from './pages/Login'
 import PackWorkspace from './pages/PackWorkspace'
 import StorageExplorer from './pages/StorageExplorer'
+import CRM from './pages/CRM'
 import { ToastProvider } from './components/ToastProvider'
 import { ConfirmProvider } from './components/ConfirmProvider'
 
@@ -46,6 +47,7 @@ function App() {
               <Route path="/create" element={<CreatePack />} />
               <Route path="/workspace/:id" element={<PackWorkspace />} />
               <Route path="/storage" element={<StorageExplorer />} />
+              <Route path="/crm" element={<CRM />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

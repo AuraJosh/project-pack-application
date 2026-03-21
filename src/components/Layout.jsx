@@ -8,7 +8,8 @@ import {
   Menu, 
   X,
   FileText,
-  HardDrive
+  HardDrive,
+  Users
 } from 'lucide-react'
 
 import { auth } from '../firebase'
@@ -22,6 +23,7 @@ export default function Layout({ children }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'CRM Pipeline', href: '/crm', icon: Users },
     { name: 'Create Pack', href: '/create', icon: PlusCircle },
     { name: 'Storage', href: '/storage', icon: HardDrive },
     { name: 'Settings', href: '/settings', icon: Settings },

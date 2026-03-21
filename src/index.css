@@ -42,6 +42,24 @@
     @apply bg-white dark:bg-[#16171d] border border-gray-200 dark:border-[#2e303a] rounded-2xl shadow-sm hover:shadow-md transition-all duration-300;
   }
   
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out forwards;
+  }
+
+  @keyframes scale-in {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes slide-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  
   .glass {
     @apply bg-white/70 dark:bg-[#16171d]/70 backdrop-blur-md border border-white/20 dark:border-white/10;
   }
